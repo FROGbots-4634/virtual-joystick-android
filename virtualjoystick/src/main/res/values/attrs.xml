@@ -2,7 +2,7 @@
 <resources>
 
 
-    <declare-styleable name="JoystickView">
+    <declare-styleable name="FtcJoystickView">
 
         <attr name="JV_buttonImage" format="reference" />
 

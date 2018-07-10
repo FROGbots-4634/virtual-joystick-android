@@ -15,7 +15,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-public class JoystickView extends View
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class FtcJoystickView extends View
         implements
         Runnable {
 
@@ -32,11 +35,11 @@ public class JoystickView extends View
     public interface OnMoveListener {
 
         /**
-         * Called when a JoystickView's button has been moved
-         * @param angle current angle
-         * @param strength current strength
+         * Called when a FtcJoystickView's button has been moved
+         * @param x FTC-SDK scaled X value
+         * @param y FTC-SDK scaled Y value
          */
-        void onMove(int angle, int strength);
+        void onMove(float x, float y);
     }
 
 
@@ -223,12 +226,12 @@ public class JoystickView extends View
      * @param context The Context the JoystickView is running in, through which it can
      *        access the current theme, resources, etc.
      */
-    public JoystickView(Context context) {
+    public FtcJoystickView(Context context) {
         this(context, null);
     }
 
 
-    public JoystickView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public FtcJoystickView(Context context, AttributeSet attrs, int defStyleAttr) {
         this(context, attrs);
     }
 
@@ -241,12 +244,12 @@ public class JoystickView extends View
      *        access the current theme, resources, etc.
      * @param attrs The attributes of the XML tag that is inflating the JoystickView.
      */
-    public JoystickView(Context context, AttributeSet attrs) {
+    public FtcJoystickView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         TypedArray styledAttributes = context.getTheme().obtainStyledAttributes(
                 attrs,
-                R.styleable.JoystickView,
+                R.styleable.FtcJoystickView,
                 0, 0
         );
 
@@ -256,18 +259,18 @@ public class JoystickView extends View
         int borderWidth;
         Drawable buttonDrawable;
         try {
-            buttonColor = styledAttributes.getColor(R.styleable.JoystickView_JV_buttonColor, DEFAULT_COLOR_BUTTON);
-            borderColor = styledAttributes.getColor(R.styleable.JoystickView_JV_borderColor, DEFAULT_COLOR_BORDER);
-            backgroundColor = styledAttributes.getColor(R.styleable.JoystickView_JV_backgroundColor, DEFAULT_BACKGROUND_COLOR);
-            borderWidth = styledAttributes.getDimensionPixelSize(R.styleable.JoystickView_JV_borderWidth, DEFAULT_WIDTH_BORDER);
-            mFixedCenter = styledAttributes.getBoolean(R.styleable.JoystickView_JV_fixedCenter, DEFAULT_FIXED_CENTER);
-            mAutoReCenterButton = styledAttributes.getBoolean(R.styleable.JoystickView_JV_autoReCenterButton, DEFAULT_AUTO_RECENTER_BUTTON);
-            mButtonStickToBorder = styledAttributes.getBoolean(R.styleable.JoystickView_JV_buttonStickToBorder, DEFAULT_BUTTON_STICK_TO_BORDER);
-            buttonDrawable = styledAttributes.getDrawable(R.styleable.JoystickView_JV_buttonImage);
-            mEnabled = styledAttributes.getBoolean(R.styleable.JoystickView_JV_enabled, true);
-            mButtonSizeRatio = styledAttributes.getFraction(R.styleable.JoystickView_JV_buttonSizeRatio, 1, 1, 0.25f);
-            mBackgroundSizeRatio = styledAttributes.getFraction(R.styleable.JoystickView_JV_backgroundSizeRatio, 1, 1, 0.75f);
-            mButtonDirection = styledAttributes.getInteger(R.styleable.JoystickView_JV_buttonDirection, BUTTON_DIRECTION_BOTH);
+            buttonColor = styledAttributes.getColor(R.styleable.FtcJoystickView_JV_buttonColor, DEFAULT_COLOR_BUTTON);
+            borderColor = styledAttributes.getColor(R.styleable.FtcJoystickView_JV_borderColor, DEFAULT_COLOR_BORDER);
+            backgroundColor = styledAttributes.getColor(R.styleable.FtcJoystickView_JV_backgroundColor, DEFAULT_BACKGROUND_COLOR);
+            borderWidth = styledAttributes.getDimensionPixelSize(R.styleable.FtcJoystickView_JV_borderWidth, DEFAULT_WIDTH_BORDER);
+            mFixedCenter = styledAttributes.getBoolean(R.styleable.FtcJoystickView_JV_fixedCenter, DEFAULT_FIXED_CENTER);
+            mAutoReCenterButton = styledAttributes.getBoolean(R.styleable.FtcJoystickView_JV_autoReCenterButton, DEFAULT_AUTO_RECENTER_BUTTON);
+            mButtonStickToBorder = styledAttributes.getBoolean(R.styleable.FtcJoystickView_JV_buttonStickToBorder, DEFAULT_BUTTON_STICK_TO_BORDER);
+            buttonDrawable = styledAttributes.getDrawable(R.styleable.FtcJoystickView_JV_buttonImage);
+            mEnabled = styledAttributes.getBoolean(R.styleable.FtcJoystickView_JV_enabled, true);
+            mButtonSizeRatio = styledAttributes.getFraction(R.styleable.FtcJoystickView_JV_buttonSizeRatio, 1, 1, 0.25f);
+            mBackgroundSizeRatio = styledAttributes.getFraction(R.styleable.FtcJoystickView_JV_backgroundSizeRatio, 1, 1, 0.75f);
+            mButtonDirection = styledAttributes.getInteger(R.styleable.FtcJoystickView_JV_buttonDirection, BUTTON_DIRECTION_BOTH);
         } finally {
             styledAttributes.recycle();
         }
@@ -432,7 +435,7 @@ public class JoystickView extends View
 
                 // update now the last strength and angle which should be zero after resetButton
                 if (mCallback != null)
-                    mCallback.onMove(getAngle(), getStrength());
+                    mCallback.onMove(getFtcXValue(), getFtcYValue());
             }
 
             // if mAutoReCenterButton is false we will send the last strength and angle a bit
@@ -448,7 +451,7 @@ public class JoystickView extends View
             mThread.start();
 
             if (mCallback != null)
-                mCallback.onMove(getAngle(), getStrength());
+                mCallback.onMove(getFtcXValue(), getFtcYValue());
         }
 
         // handle first touch and long press with multiple touch only
@@ -499,7 +502,7 @@ public class JoystickView extends View
         if (!mAutoReCenterButton) {
             // Now update the last strength and angle if not reset to center
             if (mCallback != null)
-                mCallback.onMove(getAngle(), getStrength());
+                mCallback.onMove(getFtcXValue(), getFtcYValue());
         }
 
 
@@ -533,6 +536,24 @@ public class JoystickView extends View
         return (int) (100 * Math.sqrt((mPosX - mCenterX)
                 * (mPosX - mCenterX) + (mPosY - mCenterY)
                 * (mPosY - mCenterY)) / mBorderRadius);
+    }
+
+    private float getFtcXValue() {
+        float x = (float) ((getStrength() * Math.cos(Math.toRadians(getAngle()))) / 100);
+        return round(x, 2);
+    }
+
+    private float getFtcYValue() {
+        float y = (float) ((getStrength() * Math.sin(Math.toRadians(getAngle()))) / 100);
+        return round(y, 2);
+    }
+
+    public float round(float value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = new BigDecimal(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.floatValue();
     }
 
 
@@ -812,7 +833,7 @@ public class JoystickView extends View
             post(new Runnable() {
                 public void run() {
                     if (mCallback != null)
-                        mCallback.onMove(getAngle(), getStrength());
+                        mCallback.onMove(getFtcXValue(), getFtcYValue());
                 }
             });
 
